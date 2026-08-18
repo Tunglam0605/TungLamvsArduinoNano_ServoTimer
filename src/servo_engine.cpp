@@ -10,11 +10,14 @@
 namespace {
 constexpr uint16_t kTimerTicksPerUs = 2; // 16 MHz / 8 = 2 MHz
 constexpr uint16_t kFrameTicks = Config::kServoFrameUs * kTimerTicksPerUs;
-constexpr uint16_t kSlewStepTicks = Config::kServoSlewStepUsPerFrame * kTimerTicksPerUs;
-static_assert(kSlewStepTicks > 0U, "Servo slew step must be non-zero");
+constexpr uint16_t kMinSlewStepTicks = Config::kServoMinSlewStepUsPerFrame * kTimerTicksPerUs;
+constexpr uint16_t kMaxSlewStepTicks = Config::kServoMaxSlewStepUsPerFrame * kTimerTicksPerUs;
+static_assert(kMinSlewStepTicks > 0U, "Servo slew step must be non-zero");
+static_assert(kMaxSlewStepTicks >= kMinSlewStepTicks, "Invalid servo slew range");
 
 volatile uint16_t g_pulseTicks[Config::kServoCount];
 volatile uint16_t g_targetPulseTicks[Config::kServoCount];
+volatile uint16_t g_slewStepTicks = kMaxSlewStepTicks;
 volatile uint8_t g_channel = 0;
 volatile bool g_inGap = false;
 volatile uint16_t g_activePulseTicks = 0;
@@ -33,17 +36,18 @@ uint16_t AngleToTicks(uint8_t angleDeg) {
 void AdvancePulse(uint8_t channel) {
     const uint16_t current = g_pulseTicks[channel];
     const uint16_t target = g_targetPulseTicks[channel];
+    const uint16_t slewStep = g_slewStepTicks;
 
     if (current < target) {
         const uint16_t remaining = static_cast<uint16_t>(target - current);
-        g_pulseTicks[channel] = remaining <= kSlewStepTicks
+        g_pulseTicks[channel] = remaining <= slewStep
             ? target
-            : static_cast<uint16_t>(current + kSlewStepTicks);
+            : static_cast<uint16_t>(current + slewStep);
     } else if (current > target) {
         const uint16_t remaining = static_cast<uint16_t>(current - target);
-        g_pulseTicks[channel] = remaining <= kSlewStepTicks
+        g_pulseTicks[channel] = remaining <= slewStep
             ? target
-            : static_cast<uint16_t>(current - kSlewStepTicks);
+            : static_cast<uint16_t>(current - slewStep);
     }
 }
 }
@@ -81,6 +85,30 @@ void ServoEngine_SetAngle(uint8_t channel, uint8_t angleDeg) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         g_targetPulseTicks[channel] = ticks;
     }
+}
+
+void ServoEngine_SetSpeedFromAdc(uint16_t adcValue) {
+    if (adcValue > 1023U) {
+        adcValue = 1023U;
+    }
+    const uint16_t slewRange = static_cast<uint16_t>(kMaxSlewStepTicks - kMinSlewStepTicks);
+    const uint16_t slewStep = static_cast<uint16_t>(kMinSlewStepTicks +
+        (static_cast<uint32_t>(slewRange) * adcValue) / 1023U);
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        g_slewStepTicks = slewStep;
+    }
+}
+
+uint16_t ServoEngine_GetMove90Ms() {
+    uint16_t slewStepTicks;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        slewStepTicks = g_slewStepTicks;
+    }
+
+    const uint16_t move90Ticks = static_cast<uint16_t>(
+        ((Config::kServoMaxUs - Config::kServoMinUs) * kTimerTicksPerUs) / 2U);
+    const uint16_t frames = static_cast<uint16_t>((move90Ticks + slewStepTicks - 1U) / slewStepTicks);
+    return static_cast<uint16_t>(frames * (Config::kServoFrameUs / 1000U));
 }
 
 ISR(TIMER1_COMPA_vect) {

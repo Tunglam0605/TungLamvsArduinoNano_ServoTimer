@@ -26,11 +26,13 @@ uint8_t g_events = INPUT_NONE;
 uint8_t g_modeSelection = 0;
 uint8_t g_modeCandidate = 0;
 uint16_t g_modeAdc = 0;
+uint16_t g_speedAdc = 0;
 
 constexpr uint16_t kMode1UpperBoundary = 341;
 constexpr uint16_t kMode2UpperBoundary = 683;
 
-uint16_t ReadModePotAdc() {
+uint16_t ReadAdc(uint8_t channel) {
+    ADMUX = static_cast<uint8_t>(_BV(REFS0) | (channel & 0x0FU));
     ADCSRA |= _BV(ADSC);
     while ((ADCSRA & _BV(ADSC)) != 0U) {
     }
@@ -77,7 +79,9 @@ void UpdateModePot(uint32_t nowMs) {
     }
     g_lastPotSampleMs = nowMs;
 
-    g_modeAdc = ReadModePotAdc();
+    g_modeAdc = ReadAdc(2);
+    const uint16_t rawSpeedAdc = ReadAdc(6);
+    g_speedAdc = static_cast<uint16_t>((static_cast<uint32_t>(g_speedAdc) * 7U + rawSpeedAdc) / 8U);
     const uint8_t newCandidate = ModeWithHysteresis(g_modeAdc);
     if (newCandidate == g_modeSelection) {
         g_modeCandidate = g_modeSelection;
@@ -99,11 +103,12 @@ void UpdateModePot(uint32_t nowMs) {
 
 void Input_Init() {
     Gpio_InputFloating(Board::kModePotentiometer);
-    DIDR0 |= _BV(ADC2D);
-    ADMUX = _BV(REFS0) | 2U; // AVcc reference, ADC2/A2 channel
+    DIDR0 |= _BV(ADC2D); // A6 is analog-only and has no digital input buffer.
+    ADMUX = _BV(REFS0); // AVcc reference; channel is selected per conversion
     ADCSRA = _BV(ADEN) | _BV(ADPS2) | _BV(ADPS1) | _BV(ADPS0); // ADC clock /128
 
-    g_modeAdc = ReadModePotAdc();
+    g_modeAdc = ReadAdc(2);
+    g_speedAdc = ReadAdc(6);
     g_modeSelection = ModeFromAdc(g_modeAdc);
     g_modeCandidate = g_modeSelection;
 
@@ -155,4 +160,8 @@ uint8_t Input_GetModeSelection() {
 
 uint16_t Input_GetModeAdc() {
     return g_modeAdc;
+}
+
+uint16_t Input_GetSpeedAdc() {
+    return g_speedAdc;
 }

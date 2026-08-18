@@ -136,6 +136,8 @@ bool DebugSerial_TakeStartCommand() {
 
 void DebugSerial_Update(uint32_t nowMs,
                         uint16_t modeAdc,
+                        uint16_t speedAdc,
+                        uint16_t move90Ms,
                         uint8_t selectedMode,
                         bool competitionRunning,
                         uint8_t inputEvents,
@@ -148,6 +150,10 @@ void DebugSerial_Update(uint32_t nowMs,
 
     WriteString("ADC=");
     WriteUint16(modeAdc);
+    WriteString(" SPEED_ADC=");
+    WriteUint16(speedAdc);
+    WriteString(" MOVE90_MS=");
+    WriteUint16(move90Ms);
     WriteString(" MODE=");
     WriteUint16(static_cast<uint16_t>(selectedMode + 1U));
     WriteString(" STATE=");

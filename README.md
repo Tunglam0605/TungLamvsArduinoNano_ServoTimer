@@ -10,7 +10,7 @@ Firmware register-level cho Arduino Nano ATmega328P điều khiển 9 bia servo 
 - Timer0 free-running: entropy cho lựa chọn ngẫu nhiên ở phần 2.
 - FSM chạy ở main loop; ISR chỉ làm timing tối thiểu.
 - Góc bia hạ: 0°; góc bia dựng: 90°.
-- Góc servo thay đổi theo ramp khoảng 9° mỗi frame 20 ms; hành trình 0° -> 90° mất khoảng 200 ms.
+- Biến trở A6 chỉnh ramp chung cho 9 servo; hành trình 0° -> 90° khoảng 0,2..2,0 s.
 - Nguồn servo phải dùng 5 V ngoài đủ dòng và nối chung GND với Nano.
 
 ## Pin mapping
@@ -35,8 +35,10 @@ Firmware register-level cho Arduino Nano ATmega328P điều khiển 9 bia servo 
 | Part 2 - Left button | A3 |
 | Part 2 - Right button | A4 |
 | START button | A5 |
+| Servo speed potentiometer wiper | A6/ADC6 |
 
 Biến trở MODE: nối hai đầu ngoài vào 5 V và GND, chân giữa (wiper) vào A2.
+Biến trở tốc độ: nối hai đầu ngoài vào 5 V và GND, chân giữa (wiper) vào A6.
 Các nút A3..A5 dùng active-low và internal pull-up.
 
 ## Phần thi 1
@@ -78,8 +80,8 @@ Các nút A3..A5 dùng active-low và internal pull-up.
 USART0 phát log ở 115200 baud mỗi 200 ms, gồm giá trị ADC, mode, trạng thái và sự kiện nút:
 
 ```text
-ADC=512 MODE=2 STATE=IDLE BTN=- UP=-
-ADC=512 MODE=2 STATE=RUNNING BTN=START UP=P2L,P2R
+ADC=512 SPEED_ADC=600 MOVE90_MS=320 MODE=2 STATE=IDLE BTN=- UP=-
+ADC=512 SPEED_ADC=600 MOVE90_MS=320 MODE=2 STATE=RUNNING BTN=START UP=P2L,P2R
 ```
 
 `UP` liệt kê các bia đang dựng; các bia không xuất hiện trong danh sách đang hạ.

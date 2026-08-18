@@ -23,13 +23,23 @@ int main() {
     Competition_Init();
     SystemTick_Init();
     ServoEngine_Init();
+    ServoEngine_SetSpeedFromAdc(Input_GetSpeedAdc());
     DebugSerial_Init();
 
     sei();
 
+    uint16_t appliedSpeedAdc = Input_GetSpeedAdc();
+    uint16_t move90Ms = ServoEngine_GetMove90Ms();
+
     while (true) {
         const uint32_t nowMs = SystemTick_NowMs();
         Input_Update(nowMs);
+        const uint16_t speedAdc = Input_GetSpeedAdc();
+        if (speedAdc != appliedSpeedAdc) {
+            ServoEngine_SetSpeedFromAdc(speedAdc);
+            appliedSpeedAdc = speedAdc;
+            move90Ms = ServoEngine_GetMove90Ms();
+        }
         uint8_t events = Input_TakeEvents();
         if (DebugSerial_TakeStartCommand()) {
             events = static_cast<uint8_t>(events | INPUT_START);
@@ -37,6 +47,8 @@ int main() {
         Competition_Update(nowMs, events);
         DebugSerial_Update(nowMs,
                            Input_GetModeAdc(),
+                           speedAdc,
+                           move90Ms,
                            Input_GetModeSelection(),
                            Competition_IsRunning(),
                            events,
