@@ -10,6 +10,7 @@ Firmware register-level cho Arduino Nano ATmega328P điều khiển 9 bia servo 
 - Timer0 free-running: entropy cho lựa chọn ngẫu nhiên ở phần 2.
 - FSM chạy ở main loop; ISR chỉ làm timing tối thiểu.
 - Góc bia hạ: 0°; góc bia dựng: 90°.
+- Góc servo thay đổi theo ramp khoảng 9° mỗi frame 20 ms; hành trình 0° -> 90° mất khoảng 200 ms.
 - Nguồn servo phải dùng 5 V ngoài đủ dòng và nối chung GND với Nano.
 
 ## Pin mapping

@@ -10,8 +10,11 @@
 namespace {
 constexpr uint16_t kTimerTicksPerUs = 2; // 16 MHz / 8 = 2 MHz
 constexpr uint16_t kFrameTicks = Config::kServoFrameUs * kTimerTicksPerUs;
+constexpr uint16_t kSlewStepTicks = Config::kServoSlewStepUsPerFrame * kTimerTicksPerUs;
+static_assert(kSlewStepTicks > 0U, "Servo slew step must be non-zero");
 
 volatile uint16_t g_pulseTicks[Config::kServoCount];
+volatile uint16_t g_targetPulseTicks[Config::kServoCount];
 volatile uint8_t g_channel = 0;
 volatile bool g_inGap = false;
 volatile uint16_t g_activePulseTicks = 0;
@@ -26,6 +29,23 @@ uint16_t AngleToTicks(uint8_t angleDeg) {
         (static_cast<uint32_t>(spanUs) * angleDeg) / 180U);
     return static_cast<uint16_t>(pulseUs * kTimerTicksPerUs);
 }
+
+void AdvancePulse(uint8_t channel) {
+    const uint16_t current = g_pulseTicks[channel];
+    const uint16_t target = g_targetPulseTicks[channel];
+
+    if (current < target) {
+        const uint16_t remaining = static_cast<uint16_t>(target - current);
+        g_pulseTicks[channel] = remaining <= kSlewStepTicks
+            ? target
+            : static_cast<uint16_t>(current + kSlewStepTicks);
+    } else if (current > target) {
+        const uint16_t remaining = static_cast<uint16_t>(current - target);
+        g_pulseTicks[channel] = remaining <= kSlewStepTicks
+            ? target
+            : static_cast<uint16_t>(current - kSlewStepTicks);
+    }
+}
 }
 
 void ServoEngine_Init() {
@@ -35,6 +55,7 @@ void ServoEngine_Init() {
         Gpio_Output(Board::kServoPins[i]);
         Gpio_Low(Board::kServoPins[i]);
         g_pulseTicks[i] = downTicks;
+        g_targetPulseTicks[i] = downTicks;
     }
 
     TCCR1A = 0;
@@ -58,7 +79,7 @@ void ServoEngine_SetAngle(uint8_t channel, uint8_t angleDeg) {
     }
     const uint16_t ticks = AngleToTicks(angleDeg);
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        g_pulseTicks[channel] = ticks;
+        g_targetPulseTicks[channel] = ticks;
     }
 }
 
@@ -69,6 +90,7 @@ ISR(TIMER1_COMPA_vect) {
         ++g_channel;
 
         if (g_channel < Config::kServoCount) {
+            AdvancePulse(g_channel);
             g_activePulseTicks = g_pulseTicks[g_channel];
             Gpio_High(Board::kServoPins[g_channel]);
             OCR1A = static_cast<uint16_t>(OCR1A + g_activePulseTicks);
@@ -84,6 +106,7 @@ ISR(TIMER1_COMPA_vect) {
         g_inGap = false;
         g_channel = 0;
         g_usedTicks = 0;
+        AdvancePulse(0);
         g_activePulseTicks = g_pulseTicks[0];
         Gpio_High(Board::kServoPins[0]);
         OCR1A = static_cast<uint16_t>(OCR1A + g_activePulseTicks);

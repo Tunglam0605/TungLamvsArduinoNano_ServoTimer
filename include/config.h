@@ -13,6 +13,9 @@ constexpr uint16_t kServoFrameUs = 20000;
 // reaches its stop or buzzes.
 constexpr uint16_t kServoMinUs = 600;
 constexpr uint16_t kServoMaxUs = 2400;
+// Change at most 90 us per 20 ms frame: about 9 degrees/frame, so a
+// 0-to-90-degree move takes approximately 200 ms.
+constexpr uint16_t kServoSlewStepUsPerFrame = 90;
 
 constexpr uint16_t kButtonDebounceMs = 20;
 constexpr uint16_t kModePotSampleMs = 10;
