@@ -25,6 +25,7 @@ uint32_t g_modeCandidateStartMs = 0;
 uint8_t g_events = INPUT_NONE;
 uint8_t g_modeSelection = 0;
 uint8_t g_modeCandidate = 0;
+uint16_t g_modeAdc = 0;
 
 constexpr uint16_t kMode1UpperBoundary = 341;
 constexpr uint16_t kMode2UpperBoundary = 683;
@@ -76,7 +77,8 @@ void UpdateModePot(uint32_t nowMs) {
     }
     g_lastPotSampleMs = nowMs;
 
-    const uint8_t newCandidate = ModeWithHysteresis(ReadModePotAdc());
+    g_modeAdc = ReadModePotAdc();
+    const uint8_t newCandidate = ModeWithHysteresis(g_modeAdc);
     if (newCandidate == g_modeSelection) {
         g_modeCandidate = g_modeSelection;
         g_modeCandidateStartMs = nowMs;
@@ -101,7 +103,8 @@ void Input_Init() {
     ADMUX = _BV(REFS0) | 2U; // AVcc reference, ADC2/A2 channel
     ADCSRA = _BV(ADEN) | _BV(ADPS2) | _BV(ADPS1) | _BV(ADPS0); // ADC clock /128
 
-    g_modeSelection = ModeFromAdc(ReadModePotAdc());
+    g_modeAdc = ReadModePotAdc();
+    g_modeSelection = ModeFromAdc(g_modeAdc);
     g_modeCandidate = g_modeSelection;
 
     for (auto& button : g_buttons) {
@@ -148,4 +151,8 @@ uint8_t Input_TakeEvents() {
 
 uint8_t Input_GetModeSelection() {
     return g_modeSelection;
+}
+
+uint16_t Input_GetModeAdc() {
+    return g_modeAdc;
 }

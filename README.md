@@ -72,6 +72,15 @@ Các nút A3..A5 dùng active-low và internal pull-up.
 - START ở A5 bắt đầu phần thi hiện tại.
 - Khi đang RUNNING, thay đổi biến trở và START không ảnh hưởng bài đang chạy; mode mới được áp dụng khi trở lại IDLE.
 
+## Serial debug
+
+USART0 phát log ở 115200 baud mỗi 200 ms, gồm giá trị ADC, mode, trạng thái và sự kiện nút:
+
+```text
+ADC=512 MODE=2 STATE=IDLE BTN=-
+ADC=512 MODE=2 STATE=RUNNING BTN=START
+```
+
 ## Build
 
 Dự án dùng PlatformIO AVR thuần, không dùng Arduino framework:

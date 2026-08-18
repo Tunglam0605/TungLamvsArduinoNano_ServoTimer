@@ -1,4 +1,5 @@
 #include "competition.h"
+#include "debug_serial.h"
 #include "input.h"
 #include "servo_engine.h"
 #include "system_tick.h"
@@ -22,6 +23,7 @@ int main() {
     Competition_Init();
     SystemTick_Init();
     ServoEngine_Init();
+    DebugSerial_Init();
 
     sei();
 
@@ -30,5 +32,10 @@ int main() {
         Input_Update(nowMs);
         const uint8_t events = Input_TakeEvents();
         Competition_Update(nowMs, events);
+        DebugSerial_Update(nowMs,
+                           Input_GetModeAdc(),
+                           Input_GetModeSelection(),
+                           Competition_IsRunning(),
+                           events);
     }
 }
