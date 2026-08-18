@@ -81,6 +81,10 @@ ADC=512 MODE=2 STATE=IDLE BTN=-
 ADC=512 MODE=2 STATE=RUNNING BTN=START
 ```
 
+Gửi `START` (không phân biệt chữ hoa/thường) từ Serial Monitor để bắt đầu mode
+đang chọn, tương đương nhấn nút START ở A5. UART RX dùng ngắt và bộ đệm nên
+không chặn main loop.
+
 ## Build
 
 Dự án dùng PlatformIO AVR thuần, không dùng Arduino framework:

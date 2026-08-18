@@ -30,7 +30,10 @@ int main() {
     while (true) {
         const uint32_t nowMs = SystemTick_NowMs();
         Input_Update(nowMs);
-        const uint8_t events = Input_TakeEvents();
+        uint8_t events = Input_TakeEvents();
+        if (DebugSerial_TakeStartCommand()) {
+            events = static_cast<uint8_t>(events | INPUT_START);
+        }
         Competition_Update(nowMs, events);
         DebugSerial_Update(nowMs,
                            Input_GetModeAdc(),
