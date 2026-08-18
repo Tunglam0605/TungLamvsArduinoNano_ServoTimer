@@ -35,8 +35,10 @@ static const GpioPin kModeLedPins[3] = {
 static const GpioPin kPart2LeftLed  = {&DDRC, &PORTC, &PINC, _BV(PC0)};
 static const GpioPin kPart2RightLed = {&DDRC, &PORTC, &PINC, _BV(PC1)};
 
-// Buttons, active-low with internal pull-ups: A2..A5
-static const GpioPin kModeButton       = {&DDRC, &PORTC, &PINC, _BV(PC2)};
+// Mode potentiometer wiper: A2/ADC2
+static const GpioPin kModePotentiometer = {&DDRC, &PORTC, &PINC, _BV(PC2)};
+
+// Buttons, active-low with internal pull-ups: A3..A5
 static const GpioPin kPart2LeftButton  = {&DDRC, &PORTC, &PINC, _BV(PC3)};
 static const GpioPin kPart2RightButton = {&DDRC, &PORTC, &PINC, _BV(PC4)};
 static const GpioPin kStartButton      = {&DDRC, &PORTC, &PINC, _BV(PC5)};
@@ -49,6 +51,11 @@ inline void Gpio_Output(const GpioPin& gpio) {
 inline void Gpio_InputPullup(const GpioPin& gpio) {
     *gpio.ddr &= static_cast<uint8_t>(~gpio.mask);
     *gpio.port |= gpio.mask;
+}
+
+inline void Gpio_InputFloating(const GpioPin& gpio) {
+    *gpio.ddr &= static_cast<uint8_t>(~gpio.mask);
+    *gpio.port &= static_cast<uint8_t>(~gpio.mask);
 }
 
 inline void Gpio_High(const GpioPin& gpio) {

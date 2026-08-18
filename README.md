@@ -30,12 +30,13 @@ Firmware register-level cho Arduino Nano ATmega328P điều khiển 9 bia servo 
 | Mode LED 3 | D13 |
 | Part 2 - Left LED | A0 |
 | Part 2 - Right LED | A1 |
-| MODE button | A2 |
+| MODE potentiometer wiper | A2/ADC2 |
 | Part 2 - Left button | A3 |
 | Part 2 - Right button | A4 |
 | START button | A5 |
 
-Các nút dùng active-low và internal pull-up.
+Biến trở MODE: nối hai đầu ngoài vào 5 V và GND, chân giữa (wiper) vào A2.
+Các nút A3..A5 dùng active-low và internal pull-up.
 
 ## Phần thi 1
 
@@ -64,11 +65,12 @@ Các nút dùng active-low và internal pull-up.
 
 ## Chọn phần thi
 
-- MODE chỉ hoạt động khi hệ thống IDLE.
-- Mỗi lần nhấn MODE: Part 1 -> Part 2 -> Part 3 -> Part 1.
+- Biến trở MODE chỉ thay đổi phần thi khi hệ thống IDLE.
+- ADC 0..340 chọn Part 1, 341..682 chọn Part 2, 683..1023 chọn Part 3.
+- Firmware lấy mẫu mỗi 10 ms, yêu cầu vùng mới ổn định 50 ms và có hysteresis để chống nhảy mode gần biên.
 - Ba LED D11/D12/D13 báo phần thi đang chọn.
 - START ở A5 bắt đầu phần thi hiện tại.
-- Khi đang RUNNING, MODE và START được bỏ qua.
+- Khi đang RUNNING, thay đổi biến trở và START không ảnh hưởng bài đang chạy; mode mới được áp dụng khi trở lại IDLE.
 
 ## Build
 

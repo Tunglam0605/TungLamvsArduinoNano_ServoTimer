@@ -15,6 +15,9 @@ constexpr uint16_t kServoMinUs = 600;
 constexpr uint16_t kServoMaxUs = 2400;
 
 constexpr uint16_t kButtonDebounceMs = 20;
+constexpr uint16_t kModePotSampleMs = 10;
+constexpr uint16_t kModePotStableMs = 50;
+constexpr uint16_t kModePotHysteresis = 16;
 
 constexpr uint32_t kPart1VisibleMs = 8000UL;
 constexpr uint32_t kPart1HiddenMs = 10000UL;

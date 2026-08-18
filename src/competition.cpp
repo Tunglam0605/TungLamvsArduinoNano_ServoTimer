@@ -202,7 +202,10 @@ void Competition_Init() {
         Gpio_Output(led);
         Gpio_Low(led);
     }
-    g_mode = CompetitionMode::Part1;
+    const uint8_t selectedMode = Input_GetModeSelection();
+    g_mode = selectedMode < static_cast<uint8_t>(CompetitionMode::Count)
+        ? static_cast<CompetitionMode>(selectedMode)
+        : CompetitionMode::Part1;
     g_systemState = SystemState::Idle;
     SetModeLeds();
     Target_AllDown();
@@ -210,12 +213,10 @@ void Competition_Init() {
 
 void Competition_Update(uint32_t nowMs, uint8_t inputEvents) {
     if (g_systemState == SystemState::Idle) {
-        if ((inputEvents & INPUT_MODE) != 0U) {
-            uint8_t nextMode = static_cast<uint8_t>(g_mode) + 1U;
-            if (nextMode >= static_cast<uint8_t>(CompetitionMode::Count)) {
-                nextMode = 0U;
-            }
-            g_mode = static_cast<CompetitionMode>(nextMode);
+        const uint8_t selectedMode = Input_GetModeSelection();
+        if (selectedMode < static_cast<uint8_t>(CompetitionMode::Count) &&
+            selectedMode != static_cast<uint8_t>(g_mode)) {
+            g_mode = static_cast<CompetitionMode>(selectedMode);
             Target_AllDown();
             SetModeLeds();
         }
