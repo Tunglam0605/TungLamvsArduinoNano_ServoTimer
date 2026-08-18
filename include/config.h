@@ -8,8 +8,11 @@ constexpr uint8_t kServoDownAngle = 0;
 constexpr uint8_t kServoUpAngle = 90;
 
 constexpr uint16_t kServoFrameUs = 20000;
-constexpr uint16_t kServoMinUs = 1000;
-constexpr uint16_t kServoMaxUs = 2000;
+// Calibrated for the tested SG90 units: this maps logical 0°..180° to the
+// usable mechanical travel. Reduce either endpoint if a particular servo
+// reaches its stop or buzzes.
+constexpr uint16_t kServoMinUs = 600;
+constexpr uint16_t kServoMaxUs = 2400;
 
 constexpr uint16_t kButtonDebounceMs = 20;
 
