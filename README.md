@@ -77,9 +77,12 @@ Các nút A3..A5 dùng active-low và internal pull-up.
 USART0 phát log ở 115200 baud mỗi 200 ms, gồm giá trị ADC, mode, trạng thái và sự kiện nút:
 
 ```text
-ADC=512 MODE=2 STATE=IDLE BTN=-
-ADC=512 MODE=2 STATE=RUNNING BTN=START
+ADC=512 MODE=2 STATE=IDLE BTN=- UP=-
+ADC=512 MODE=2 STATE=RUNNING BTN=START UP=P2L,P2R
 ```
+
+`UP` liệt kê các bia đang dựng; các bia không xuất hiện trong danh sách đang hạ.
+Tên bia lần lượt là P1T1..P1T4, P2L/P2C/P2R và P3T1/P3T2.
 
 Gửi `START` (không phân biệt chữ hoa/thường) từ Serial Monitor để bắt đầu mode
 đang chọn, tương đương nhấn nút START ở A5. UART RX dùng ngắt và bộ đệm nên

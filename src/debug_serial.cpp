@@ -16,6 +16,11 @@ volatile uint8_t g_rxTail = 0;
 uint8_t g_startMatchLength = 0;
 
 constexpr char kStartCommand[] = "START";
+constexpr const char* kTargetNames[] = {
+    "P1T1", "P1T2", "P1T3", "P1T4",
+    "P2L", "P2C", "P2R",
+    "P3T1", "P3T2"
+};
 
 void WriteChar(char value) {
     while ((UCSR0A & _BV(UDRE0)) == 0U) {
@@ -71,6 +76,26 @@ void WriteButtonEvents(uint8_t events) {
         WriteString("START");
     }
 }
+
+void WriteTargetsUp(uint16_t targetsUpMask) {
+    if (targetsUpMask == 0U) {
+        WriteChar('-');
+        return;
+    }
+
+    bool needsSeparator = false;
+    for (uint8_t target = 0; target < 9U; ++target) {
+        const uint16_t targetBit = static_cast<uint16_t>(1U << target);
+        if ((targetsUpMask & targetBit) == 0U) {
+            continue;
+        }
+        if (needsSeparator) {
+            WriteChar(',');
+        }
+        WriteString(kTargetNames[target]);
+        needsSeparator = true;
+    }
+}
 }
 
 void DebugSerial_Init() {
@@ -113,7 +138,8 @@ void DebugSerial_Update(uint32_t nowMs,
                         uint16_t modeAdc,
                         uint8_t selectedMode,
                         bool competitionRunning,
-                        uint8_t inputEvents) {
+                        uint8_t inputEvents,
+                        uint16_t targetsUpMask) {
     if (inputEvents == INPUT_NONE &&
         static_cast<uint32_t>(nowMs - g_lastLogMs) < kLogIntervalMs) {
         return;
@@ -128,6 +154,8 @@ void DebugSerial_Update(uint32_t nowMs,
     WriteString(competitionRunning ? "RUNNING" : "IDLE");
     WriteString(" BTN=");
     WriteButtonEvents(inputEvents);
+    WriteString(" UP=");
+    WriteTargetsUp(targetsUpMask);
     WriteString("\r\n");
 }
 

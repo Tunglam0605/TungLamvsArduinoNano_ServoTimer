@@ -8,4 +8,5 @@ void DebugSerial_Update(uint32_t nowMs,
                         uint16_t modeAdc,
                         uint8_t selectedMode,
                         bool competitionRunning,
-                        uint8_t inputEvents);
+                        uint8_t inputEvents,
+                        uint16_t targetsUpMask);

@@ -39,6 +39,7 @@ int main() {
                            Input_GetModeAdc(),
                            Input_GetModeSelection(),
                            Competition_IsRunning(),
-                           events);
+                           events,
+                           Target_GetUpMask());
     }
 }

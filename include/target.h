@@ -23,3 +23,4 @@ enum class TargetState : uint8_t {
 void Target_Init();
 void Target_Set(TargetId id, TargetState state);
 void Target_AllDown();
+uint16_t Target_GetUpMask();
