@@ -17,6 +17,9 @@ CompetitionMode g_mode = CompetitionMode::Part1;
 SystemState g_systemState = SystemState::Idle;
 uint8_t g_previousSwitchMask = COMPETITION_SWITCH_NONE;
 bool g_selectionReady = false;
+bool g_waitBlinkInitialized = false;
+bool g_waitLedOn = false;
+uint32_t g_waitBlinkLastMs = 0;
 
 struct Part1Context {
     uint8_t round;
@@ -88,8 +91,8 @@ void ClearModeLeds() {
 
 void FinishCompetition() {
     Target_AllDown();
-    ClearModeLeds();
     g_systemState = SystemState::WaitAllOff;
+    g_waitBlinkInitialized = false;
 }
 
 void StartPart1(uint32_t nowMs) {
@@ -250,7 +253,24 @@ void Competition_Update(uint32_t nowMs) {
         if (switchMask == COMPETITION_SWITCH_NONE) {
             g_systemState = SystemState::Idle;
             g_selectionReady = true;
+            g_waitBlinkInitialized = false;
             ClearModeLeds();
+            return;
+        }
+
+        if (!g_waitBlinkInitialized) {
+            g_waitBlinkInitialized = true;
+            g_waitLedOn = true;
+            g_waitBlinkLastMs = nowMs;
+            SetLockedModeLed(g_mode);
+        } else if (Elapsed(nowMs, g_waitBlinkLastMs, Config::kModeCompleteBlinkMs)) {
+            g_waitBlinkLastMs = nowMs;
+            g_waitLedOn = !g_waitLedOn;
+            if (g_waitLedOn) {
+                SetLockedModeLed(g_mode);
+            } else {
+                ClearModeLeds();
+            }
         }
         return;
     }
