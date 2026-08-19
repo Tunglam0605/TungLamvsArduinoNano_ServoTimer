@@ -75,7 +75,9 @@ A5 và A7 hiện không sử dụng.
 - Tắt nút đã khóa sẽ kết thúc sớm bài hiện tại và hạ toàn bộ bia.
 - Khi bài tự kết thúc hoặc bị tắt, hệ thống chờ cả ba nút trở về OFF trước khi cho phép chọn mode tiếp theo.
 - Nếu hai/ba nút cùng bật trước khi một mode được khóa, hệ thống không chọn mode và vẫn yêu cầu trở lại `000`.
-- LED D11/D12/D13 chỉ báo mode đang bị khóa, không chạy theo hai nút phụ trong Mode 2.
+- LED D11/D12/D13 chỉ sáng khi Mode 1/2/3 tương ứng đang RUNNING.
+- Khi bài kết thúc, bị hủy hoặc đang chờ cả ba nút OFF, cả ba LED mode đều tắt.
+- Hai nút phụ trong Mode 2 không làm thay đổi LED mode.
 
 ## Serial debug
 

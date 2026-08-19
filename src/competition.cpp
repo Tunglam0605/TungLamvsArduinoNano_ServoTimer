@@ -88,6 +88,7 @@ void ClearModeLeds() {
 
 void FinishCompetition() {
     Target_AllDown();
+    ClearModeLeds();
     g_systemState = SystemState::WaitAllOff;
 }
 
@@ -274,7 +275,6 @@ void Competition_Update(uint32_t nowMs) {
 
     if ((switchMask & SelectionForMode(g_mode)) == 0U) {
         FinishCompetition();
-        ClearModeLeds();
         return;
     }
 
