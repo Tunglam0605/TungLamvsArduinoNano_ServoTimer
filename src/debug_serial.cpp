@@ -48,20 +48,6 @@ void WriteCompetitionSwitches(uint8_t switchMask) {
     WriteChar((switchMask & COMPETITION_SWITCH_PART3) != 0U ? '1' : '0');
 }
 
-void WriteSelection(uint8_t switchMask) {
-    if (switchMask == COMPETITION_SWITCH_PART1) {
-        WriteChar('1');
-    } else if (switchMask == COMPETITION_SWITCH_PART2) {
-        WriteChar('2');
-    } else if (switchMask == COMPETITION_SWITCH_PART3) {
-        WriteChar('3');
-    } else if (switchMask == COMPETITION_SWITCH_NONE) {
-        WriteString("NONE");
-    } else {
-        WriteString("INVALID");
-    }
-}
-
 void WriteTargetsUp(uint16_t targetsUpMask) {
     if (targetsUpMask == 0U) {
         WriteChar('-');
@@ -98,7 +84,9 @@ void DebugSerial_Update(uint32_t nowMs,
                         uint16_t speedAdc,
                         uint16_t move90Ms,
                         uint8_t competitionSwitchMask,
+                        uint8_t lockedMode,
                         bool competitionRunning,
+                        bool waitingForAllOff,
                         uint16_t targetsUpMask) {
     if (static_cast<uint32_t>(nowMs - g_lastLogMs) < kLogIntervalMs) {
         return;
@@ -111,10 +99,15 @@ void DebugSerial_Update(uint32_t nowMs,
     WriteUint16(move90Ms);
     WriteString(" SW=");
     WriteCompetitionSwitches(competitionSwitchMask);
-    WriteString(" SELECT=");
-    WriteSelection(competitionSwitchMask);
+    WriteString(" LOCK=");
+    if (competitionRunning || waitingForAllOff) {
+        WriteUint16(static_cast<uint16_t>(lockedMode + 1U));
+    } else {
+        WriteChar('-');
+    }
     WriteString(" STATE=");
-    WriteString(competitionRunning ? "RUNNING" : "IDLE");
+    WriteString(competitionRunning ? "RUNNING" :
+        (waitingForAllOff ? "WAIT_ALL_OFF" : "IDLE"));
     WriteString(" UP=");
     WriteTargetsUp(targetsUpMask);
     WriteString("\r\n");

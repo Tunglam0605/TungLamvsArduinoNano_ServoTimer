@@ -45,7 +45,9 @@ int main() {
                            speedAdc,
                            move90Ms,
                            Input_GetCompetitionSwitchMask(),
+                           static_cast<uint8_t>(Competition_GetMode()),
                            Competition_IsRunning(),
+                           Competition_IsWaitingForAllOff(),
                            Target_GetUpMask());
     }
 }

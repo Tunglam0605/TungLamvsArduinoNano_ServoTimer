@@ -57,7 +57,8 @@ A3 và A4 hiện không sử dụng.
 ## Phần thi 2
 
 - Khi chỉ nút tự giữ Phần 2 ON: bia trái và phải dựng, LED tương ứng sáng, bia giữa hạ.
-- Sau 2 giây, firmware tự động lựa chọn ngẫu nhiên mà không cần nút phụ.
+- Sau khi Mode 2 đã khóa, nút Phần 1 trở thành nút trái và nút Phần 3 trở thành nút phải.
+- Bật một trong hai nút trái/phải sẽ kích hoạt một lần lựa chọn ngẫu nhiên.
 - Ngẫu nhiên chọn bia trái hoặc phải để hạ; LED của bia được chọn tắt.
 - Bia giữa dựng trong 25 s rồi hạ.
 - Kết thúc lượt: tất cả bia hạ.
@@ -70,24 +71,26 @@ A3 và A4 hiện không sử dụng.
 
 ## Chọn phần thi
 
-- Có ba nút tự giữ tương ứng Phần 1, Phần 2 và Phần 3.
-- Chỉ khi đúng một nút ON, phần thi tương ứng mới tự chạy.
-- Nếu không có nút nào ON hoặc có hai/ba nút cùng ON, tất cả bia hạ và không phần thi nào chạy.
-- Nếu trạng thái nút trở thành không hợp lệ khi đang RUNNING, bài hiện tại dừng và tất cả bia hạ.
-- Mỗi lần chuyển OFF -> ON chỉ chạy một lần. Muốn chạy lại cùng phần phải đưa nút về OFF rồi ON lại.
-- LED D11/D12/D13 phản ánh trực tiếp trạng thái ON của ba nút tự giữ.
+- Hệ thống chỉ sẵn sàng chọn mode sau khi đã đọc được cả ba nút OFF (`SW=000`).
+- Sau trạng thái `000`, nút đầu tiên ON một mình sẽ khóa Phần 1, Phần 2 hoặc Phần 3 tương ứng.
+- Khi một mode đã khóa, hai nút còn lại không thể đổi mode. Riêng trong Mode 2, chúng được dùng làm nút trái/phải.
+- Tắt nút đã khóa sẽ kết thúc sớm bài hiện tại và hạ toàn bộ bia.
+- Khi bài tự kết thúc hoặc bị tắt, hệ thống chờ cả ba nút trở về OFF trước khi cho phép chọn mode tiếp theo.
+- Nếu hai/ba nút cùng bật trước khi một mode được khóa, hệ thống không chọn mode và vẫn yêu cầu trở lại `000`.
+- LED D11/D12/D13 chỉ báo mode đang bị khóa, không chạy theo hai nút phụ trong Mode 2.
 
 ## Serial debug
 
 USART0 phát log ở 115200 baud mỗi 200 ms, gồm tốc độ, ba trạng thái chọn, trạng thái chạy và bia đang dựng:
 
 ```text
-SPEED_ADC=600 MOVE90_MS=320 SW=000 SELECT=NONE STATE=IDLE UP=-
-SPEED_ADC=600 MOVE90_MS=320 SW=010 SELECT=2 STATE=RUNNING UP=P2L,P2R
-SPEED_ADC=600 MOVE90_MS=320 SW=110 SELECT=INVALID STATE=IDLE UP=-
+SPEED_ADC=600 MOVE90_MS=320 SW=000 LOCK=- STATE=IDLE UP=-
+SPEED_ADC=600 MOVE90_MS=320 SW=010 LOCK=2 STATE=RUNNING UP=P2L,P2R
+SPEED_ADC=600 MOVE90_MS=320 SW=110 LOCK=2 STATE=RUNNING UP=P2R,P2C
+SPEED_ADC=600 MOVE90_MS=320 SW=100 LOCK=2 STATE=WAIT_ALL_OFF UP=-
 ```
 
-`SW` lần lượt là trạng thái Phần 1/2/3; `1` là ON. `SELECT=INVALID` nghĩa là có nhiều nút cùng ON.
+`SW` lần lượt là trạng thái vật lý của nút 1/2/3; `1` là ON. `LOCK` là mode đã khóa.
 `UP` liệt kê các bia đang dựng; các bia không xuất hiện trong danh sách đang hạ.
 Tên bia lần lượt là P1T1..P1T4, P2L/P2C/P2R và P3T1/P3T2.
 

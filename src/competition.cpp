@@ -8,15 +8,15 @@
 #include <avr/io.h>
 
 namespace {
-enum class SystemState : uint8_t { Idle = 0, Running };
+enum class SystemState : uint8_t { Idle = 0, Running, WaitAllOff };
 enum class Part1State : uint8_t { Show = 0, Hide };
-enum class Part2State : uint8_t { AutoSelectDelay = 0, CenterVisible };
+enum class Part2State : uint8_t { WaitSideButton = 0, CenterVisible };
 enum class Part3Target1State : uint8_t { Visible = 0, Hidden };
 
 CompetitionMode g_mode = CompetitionMode::Part1;
 SystemState g_systemState = SystemState::Idle;
-uint8_t g_selectionMask = COMPETITION_SWITCH_NONE;
-bool g_selectionArmed = true;
+uint8_t g_previousSwitchMask = COMPETITION_SWITCH_NONE;
+bool g_selectionReady = false;
 
 struct Part1Context {
     uint8_t round;
@@ -28,7 +28,7 @@ struct Part2Context {
     Part2State state;
     uint32_t stateStartMs;
     uint16_t lfsr;
-} g_part2{Part2State::AutoSelectDelay, 0, 0xACE1U};
+} g_part2{Part2State::WaitSideButton, 0, 0xACE1U};
 
 struct Part3Context {
     uint8_t target1Cycle;
@@ -70,9 +70,9 @@ uint8_t SelectionForMode(CompetitionMode mode) {
     return static_cast<uint8_t>(1U << static_cast<uint8_t>(mode));
 }
 
-void SetSelectionLeds(uint8_t selectionMask) {
+void SetLockedModeLed(CompetitionMode mode) {
     for (uint8_t i = 0; i < 3U; ++i) {
-        if ((selectionMask & static_cast<uint8_t>(1U << i)) != 0U) {
+        if (i == static_cast<uint8_t>(mode)) {
             Gpio_High(Board::kModeLedPins[i]);
         } else {
             Gpio_Low(Board::kModeLedPins[i]);
@@ -80,9 +80,15 @@ void SetSelectionLeds(uint8_t selectionMask) {
     }
 }
 
+void ClearModeLeds() {
+    for (const auto& led : Board::kModeLedPins) {
+        Gpio_Low(led);
+    }
+}
+
 void FinishCompetition() {
     Target_AllDown();
-    g_systemState = SystemState::Idle;
+    g_systemState = SystemState::WaitAllOff;
 }
 
 void StartPart1(uint32_t nowMs) {
@@ -132,7 +138,7 @@ void StartPart2(uint32_t nowMs) {
     Target_Set(TargetId::P2_LEFT, TargetState::Up);
     Target_Set(TargetId::P2_RIGHT, TargetState::Up);
     Target_Set(TargetId::P2_CENTER, TargetState::Down);
-    g_part2.state = Part2State::AutoSelectDelay;
+    g_part2.state = Part2State::WaitSideButton;
     g_part2.stateStartMs = nowMs;
     g_part2.lfsr ^= static_cast<uint16_t>(nowMs) ^ static_cast<uint16_t>(TCNT0);
     if (g_part2.lfsr == 0U) {
@@ -140,9 +146,11 @@ void StartPart2(uint32_t nowMs) {
     }
 }
 
-void UpdatePart2(uint32_t nowMs) {
-    if (g_part2.state == Part2State::AutoSelectDelay) {
-        if (!Elapsed(nowMs, g_part2.stateStartMs, Config::kPart2AutoSelectDelayMs)) {
+void UpdatePart2(uint32_t nowMs, uint8_t pressedEdges) {
+    if (g_part2.state == Part2State::WaitSideButton) {
+        const uint8_t sideButtons = static_cast<uint8_t>(
+            COMPETITION_SWITCH_PART1 | COMPETITION_SWITCH_PART3);
+        if ((pressedEdges & sideButtons) == 0U) {
             return;
         }
 
@@ -223,56 +231,56 @@ void Competition_Init() {
         Gpio_Output(led);
         Gpio_Low(led);
     }
-    g_selectionMask = Input_GetCompetitionSwitchMask();
-    g_mode = HasExactlyOneSelection(g_selectionMask)
-        ? ModeFromSelection(g_selectionMask)
-        : CompetitionMode::Part1;
+    g_previousSwitchMask = Input_GetCompetitionSwitchMask();
+    g_mode = CompetitionMode::Part1;
     g_systemState = SystemState::Idle;
-    g_selectionArmed = true;
-    SetSelectionLeds(g_selectionMask);
+    g_selectionReady = false;
+    ClearModeLeds();
     Target_AllDown();
 }
 
 void Competition_Update(uint32_t nowMs) {
-    const uint8_t selectionMask = Input_GetCompetitionSwitchMask();
-    const bool selectionChanged = selectionMask != g_selectionMask;
-    if (selectionChanged) {
-        g_selectionMask = selectionMask;
-        SetSelectionLeds(g_selectionMask);
+    const uint8_t switchMask = Input_GetCompetitionSwitchMask();
+    const uint8_t pressedEdges = static_cast<uint8_t>(switchMask &
+        static_cast<uint8_t>(~g_previousSwitchMask));
+    g_previousSwitchMask = switchMask;
+
+    if (g_systemState == SystemState::WaitAllOff) {
+        if (switchMask == COMPETITION_SWITCH_NONE) {
+            g_systemState = SystemState::Idle;
+            g_selectionReady = true;
+            ClearModeLeds();
+        }
+        return;
     }
 
     if (g_systemState == SystemState::Idle) {
-        if (!HasExactlyOneSelection(selectionMask)) {
-            g_selectionArmed = true;
-            if (selectionChanged) {
-                Target_AllDown();
-            }
+        if (switchMask == COMPETITION_SWITCH_NONE) {
+            g_selectionReady = true;
             return;
         }
 
-        if (selectionChanged) {
-            g_selectionArmed = true;
-        }
-
-        if (!g_selectionArmed) {
+        if (!g_selectionReady || !HasExactlyOneSelection(switchMask)) {
+            g_selectionReady = false;
             return;
         }
 
-        g_mode = ModeFromSelection(selectionMask);
-        g_selectionArmed = false;
+        g_mode = ModeFromSelection(switchMask);
+        g_selectionReady = false;
+        SetLockedModeLed(g_mode);
         StartSelected(nowMs);
         return;
     }
 
-    if (selectionMask != SelectionForMode(g_mode)) {
+    if ((switchMask & SelectionForMode(g_mode)) == 0U) {
         FinishCompetition();
-        g_selectionArmed = true;
+        ClearModeLeds();
         return;
     }
 
     switch (g_mode) {
         case CompetitionMode::Part1: UpdatePart1(nowMs); break;
-        case CompetitionMode::Part2: UpdatePart2(nowMs); break;
+        case CompetitionMode::Part2: UpdatePart2(nowMs, pressedEdges); break;
         case CompetitionMode::Part3: UpdatePart3(nowMs); break;
         default: FinishCompetition(); break;
     }
@@ -284,4 +292,8 @@ CompetitionMode Competition_GetMode() {
 
 bool Competition_IsRunning() {
     return g_systemState == SystemState::Running;
+}
+
+bool Competition_IsWaitingForAllOff() {
+    return g_systemState == SystemState::WaitAllOff;
 }

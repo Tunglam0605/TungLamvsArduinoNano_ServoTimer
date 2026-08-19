@@ -27,7 +27,6 @@ constexpr uint32_t kPart1HiddenMs = 10000UL;
 constexpr uint8_t kPart1RoundCount = 6;
 
 constexpr uint32_t kPart2CenterVisibleMs = 25000UL;
-constexpr uint32_t kPart2AutoSelectDelayMs = 2000UL;
 
 constexpr uint32_t kPart3Target1VisibleMs = 8000UL;
 constexpr uint32_t kPart3Target1HiddenMs = 7000UL;

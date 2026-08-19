@@ -13,3 +13,4 @@ void Competition_Init();
 void Competition_Update(uint32_t nowMs);
 CompetitionMode Competition_GetMode();
 bool Competition_IsRunning();
+bool Competition_IsWaitingForAllOff();
