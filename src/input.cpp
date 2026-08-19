@@ -10,22 +10,18 @@ struct DebouncedButton {
     const GpioPin* gpio;
     bool stablePressed;
     uint16_t mismatchMs;
-    uint8_t eventMask;
 };
 
 DebouncedButton g_buttons[] = {
-    {&Board::kPart1Switch, false, 0, INPUT_NONE},
-    {&Board::kPart2LeftButton, false, 0, INPUT_PART2_LEFT},
-    {&Board::kPart2RightButton, false, 0, INPUT_PART2_RIGHT},
-    {&Board::kPart2Switch, false, 0, INPUT_NONE}
+    {&Board::kPart1Switch, false, 0},
+    {&Board::kPart2Switch, false, 0}
 };
 
 constexpr uint8_t kPart1SwitchIndex = 0;
-constexpr uint8_t kPart2SwitchIndex = 3;
+constexpr uint8_t kPart2SwitchIndex = 1;
 
 uint32_t g_lastUpdateMs = 0;
 uint32_t g_lastAnalogSampleMs = 0;
-uint8_t g_events = INPUT_NONE;
 uint16_t g_speedAdc = 0;
 bool g_part3SwitchOn = false;
 uint16_t g_part3SwitchMismatchMs = 0;
@@ -103,17 +99,8 @@ void Input_Update(uint32_t nowMs) {
         if (button.mismatchMs >= Config::kButtonDebounceMs) {
             button.stablePressed = rawPressed;
             button.mismatchMs = 0;
-            if (rawPressed) {
-                g_events |= button.eventMask;
-            }
         }
     }
-}
-
-uint8_t Input_TakeEvents() {
-    const uint8_t events = g_events;
-    g_events = INPUT_NONE;
-    return events;
 }
 
 uint8_t Input_GetCompetitionSwitchMask() {

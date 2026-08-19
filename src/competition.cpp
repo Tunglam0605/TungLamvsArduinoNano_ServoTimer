@@ -10,7 +10,7 @@
 namespace {
 enum class SystemState : uint8_t { Idle = 0, Running };
 enum class Part1State : uint8_t { Show = 0, Hide };
-enum class Part2State : uint8_t { WaitButton = 0, CenterVisible };
+enum class Part2State : uint8_t { AutoSelectDelay = 0, CenterVisible };
 enum class Part3Target1State : uint8_t { Visible = 0, Hidden };
 
 CompetitionMode g_mode = CompetitionMode::Part1;
@@ -28,7 +28,7 @@ struct Part2Context {
     Part2State state;
     uint32_t stateStartMs;
     uint16_t lfsr;
-} g_part2{Part2State::WaitButton, 0, 0xACE1U};
+} g_part2{Part2State::AutoSelectDelay, 0, 0xACE1U};
 
 struct Part3Context {
     uint8_t target1Cycle;
@@ -132,7 +132,7 @@ void StartPart2(uint32_t nowMs) {
     Target_Set(TargetId::P2_LEFT, TargetState::Up);
     Target_Set(TargetId::P2_RIGHT, TargetState::Up);
     Target_Set(TargetId::P2_CENTER, TargetState::Down);
-    g_part2.state = Part2State::WaitButton;
+    g_part2.state = Part2State::AutoSelectDelay;
     g_part2.stateStartMs = nowMs;
     g_part2.lfsr ^= static_cast<uint16_t>(nowMs) ^ static_cast<uint16_t>(TCNT0);
     if (g_part2.lfsr == 0U) {
@@ -140,9 +140,9 @@ void StartPart2(uint32_t nowMs) {
     }
 }
 
-void UpdatePart2(uint32_t nowMs, uint8_t inputEvents) {
-    if (g_part2.state == Part2State::WaitButton) {
-        if ((inputEvents & (INPUT_PART2_LEFT | INPUT_PART2_RIGHT)) == 0U) {
+void UpdatePart2(uint32_t nowMs) {
+    if (g_part2.state == Part2State::AutoSelectDelay) {
+        if (!Elapsed(nowMs, g_part2.stateStartMs, Config::kPart2AutoSelectDelayMs)) {
             return;
         }
 
@@ -233,7 +233,7 @@ void Competition_Init() {
     Target_AllDown();
 }
 
-void Competition_Update(uint32_t nowMs, uint8_t inputEvents) {
+void Competition_Update(uint32_t nowMs) {
     const uint8_t selectionMask = Input_GetCompetitionSwitchMask();
     const bool selectionChanged = selectionMask != g_selectionMask;
     if (selectionChanged) {
@@ -272,7 +272,7 @@ void Competition_Update(uint32_t nowMs, uint8_t inputEvents) {
 
     switch (g_mode) {
         case CompetitionMode::Part1: UpdatePart1(nowMs); break;
-        case CompetitionMode::Part2: UpdatePart2(nowMs, inputEvents); break;
+        case CompetitionMode::Part2: UpdatePart2(nowMs); break;
         case CompetitionMode::Part3: UpdatePart3(nowMs); break;
         default: FinishCompetition(); break;
     }

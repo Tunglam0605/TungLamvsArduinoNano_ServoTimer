@@ -38,8 +38,6 @@ static const GpioPin kPart2RightLed = {&DDRC, &PORTC, &PINC, _BV(PC1)};
 // Maintained competition switches, active-low with internal pull-ups.
 // Part 3 uses A7/ADC7 and is handled as an analog input with an external pull-up.
 static const GpioPin kPart1Switch       = {&DDRC, &PORTC, &PINC, _BV(PC2)}; // A2
-static const GpioPin kPart2LeftButton  = {&DDRC, &PORTC, &PINC, _BV(PC3)};
-static const GpioPin kPart2RightButton = {&DDRC, &PORTC, &PINC, _BV(PC4)};
 static const GpioPin kPart2Switch       = {&DDRC, &PORTC, &PINC, _BV(PC5)}; // A5
 }
 

@@ -32,8 +32,8 @@ Firmware register-level cho Arduino Nano ATmega328P điều khiển 9 bia servo 
 | Part 2 - Left LED | A0 |
 | Part 2 - Right LED | A1 |
 | Part 1 maintained switch | A2 |
-| Part 2 - Left button | A3 |
-| Part 2 - Right button | A4 |
+| Unused | A3 |
+| Unused | A4 |
 | Part 2 maintained switch | A5 |
 | Servo speed potentiometer wiper | A6/ADC6 |
 | Part 3 maintained switch | A7/ADC7 |
@@ -41,7 +41,7 @@ Firmware register-level cho Arduino Nano ATmega328P điều khiển 9 bia servo 
 Biến trở tốc độ: nối hai đầu ngoài vào 5 V và GND, chân giữa (wiper) vào A6.
 Nút tự giữ Phần 1 và Phần 2 nối lần lượt A2/A5 xuống GND, dùng pull-up nội.
 Nút tự giữ Phần 3 nối A7 xuống GND và cần điện trở kéo lên 10 kΩ từ A7 lên 5 V.
-Hai nút A3/A4 của Phần 2 vẫn là active-low với pull-up nội.
+A3 và A4 hiện không sử dụng.
 
 ## Phần thi 1
 
@@ -57,7 +57,7 @@ Hai nút A3/A4 của Phần 2 vẫn là active-low với pull-up nội.
 ## Phần thi 2
 
 - Khi chỉ nút tự giữ Phần 2 ON: bia trái và phải dựng, LED tương ứng sáng, bia giữa hạ.
-- Nhấn một trong hai nút trái/phải sẽ kích hoạt một lần lựa chọn ngẫu nhiên.
+- Sau 2 giây, firmware tự động lựa chọn ngẫu nhiên mà không cần nút phụ.
 - Ngẫu nhiên chọn bia trái hoặc phải để hạ; LED của bia được chọn tắt.
 - Bia giữa dựng trong 25 s rồi hạ.
 - Kết thúc lượt: tất cả bia hạ.
@@ -82,9 +82,9 @@ Hai nút A3/A4 của Phần 2 vẫn là active-low với pull-up nội.
 USART0 phát log ở 115200 baud mỗi 200 ms, gồm tốc độ, ba trạng thái chọn, trạng thái chạy và bia đang dựng:
 
 ```text
-SPEED_ADC=600 MOVE90_MS=320 SW=000 SELECT=NONE STATE=IDLE BTN=- UP=-
-SPEED_ADC=600 MOVE90_MS=320 SW=010 SELECT=2 STATE=RUNNING BTN=- UP=P2L,P2R
-SPEED_ADC=600 MOVE90_MS=320 SW=110 SELECT=INVALID STATE=IDLE BTN=- UP=-
+SPEED_ADC=600 MOVE90_MS=320 SW=000 SELECT=NONE STATE=IDLE UP=-
+SPEED_ADC=600 MOVE90_MS=320 SW=010 SELECT=2 STATE=RUNNING UP=P2L,P2R
+SPEED_ADC=600 MOVE90_MS=320 SW=110 SELECT=INVALID STATE=IDLE UP=-
 ```
 
 `SW` lần lượt là trạng thái Phần 1/2/3; `1` là ON. `SELECT=INVALID` nghĩa là có nhiều nút cùng ON.

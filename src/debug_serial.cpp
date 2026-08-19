@@ -42,26 +42,6 @@ void WriteUint16(uint16_t value) {
     }
 }
 
-void WriteButtonEvents(uint8_t events) {
-    if (events == INPUT_NONE) {
-        WriteChar('-');
-        return;
-    }
-
-    bool needsSeparator = false;
-    if ((events & INPUT_PART2_LEFT) != 0U) {
-        WriteString("LEFT");
-        needsSeparator = true;
-    }
-    if ((events & INPUT_PART2_RIGHT) != 0U) {
-        if (needsSeparator) {
-            WriteChar(',');
-        }
-        WriteString("RIGHT");
-        needsSeparator = true;
-    }
-}
-
 void WriteCompetitionSwitches(uint8_t switchMask) {
     WriteChar((switchMask & COMPETITION_SWITCH_PART1) != 0U ? '1' : '0');
     WriteChar((switchMask & COMPETITION_SWITCH_PART2) != 0U ? '1' : '0');
@@ -119,10 +99,8 @@ void DebugSerial_Update(uint32_t nowMs,
                         uint16_t move90Ms,
                         uint8_t competitionSwitchMask,
                         bool competitionRunning,
-                        uint8_t inputEvents,
                         uint16_t targetsUpMask) {
-    if (inputEvents == INPUT_NONE &&
-        static_cast<uint32_t>(nowMs - g_lastLogMs) < kLogIntervalMs) {
+    if (static_cast<uint32_t>(nowMs - g_lastLogMs) < kLogIntervalMs) {
         return;
     }
     g_lastLogMs = nowMs;
@@ -137,8 +115,6 @@ void DebugSerial_Update(uint32_t nowMs,
     WriteSelection(competitionSwitchMask);
     WriteString(" STATE=");
     WriteString(competitionRunning ? "RUNNING" : "IDLE");
-    WriteString(" BTN=");
-    WriteButtonEvents(inputEvents);
     WriteString(" UP=");
     WriteTargetsUp(targetsUpMask);
     WriteString("\r\n");

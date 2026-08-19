@@ -40,14 +40,12 @@ int main() {
             appliedSpeedAdc = speedAdc;
             move90Ms = ServoEngine_GetMove90Ms();
         }
-        const uint8_t events = Input_TakeEvents();
-        Competition_Update(nowMs, events);
+        Competition_Update(nowMs);
         DebugSerial_Update(nowMs,
                            speedAdc,
                            move90Ms,
                            Input_GetCompetitionSwitchMask(),
                            Competition_IsRunning(),
-                           events,
                            Target_GetUpMask());
     }
 }

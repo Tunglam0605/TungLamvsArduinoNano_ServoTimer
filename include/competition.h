@@ -10,6 +10,6 @@ enum class CompetitionMode : uint8_t {
 };
 
 void Competition_Init();
-void Competition_Update(uint32_t nowMs, uint8_t inputEvents);
+void Competition_Update(uint32_t nowMs);
 CompetitionMode Competition_GetMode();
 bool Competition_IsRunning();
