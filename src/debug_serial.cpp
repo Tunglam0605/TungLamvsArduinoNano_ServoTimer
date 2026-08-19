@@ -2,20 +2,11 @@
 
 #include "input.h"
 
-#include <avr/interrupt.h>
 #include <avr/io.h>
 
 namespace {
 constexpr uint32_t kLogIntervalMs = 200;
-constexpr uint8_t kRxBufferSize = 16;
-constexpr uint8_t kRxBufferMask = kRxBufferSize - 1U;
 uint32_t g_lastLogMs = 0;
-volatile char g_rxBuffer[kRxBufferSize];
-volatile uint8_t g_rxHead = 0;
-volatile uint8_t g_rxTail = 0;
-uint8_t g_startMatchLength = 0;
-
-constexpr char kStartCommand[] = "START";
 constexpr const char* kTargetNames[] = {
     "P1T1", "P1T2", "P1T3", "P1T4",
     "P2L", "P2C", "P2R",
@@ -69,11 +60,25 @@ void WriteButtonEvents(uint8_t events) {
         WriteString("RIGHT");
         needsSeparator = true;
     }
-    if ((events & INPUT_START) != 0U) {
-        if (needsSeparator) {
-            WriteChar(',');
-        }
-        WriteString("START");
+}
+
+void WriteCompetitionSwitches(uint8_t switchMask) {
+    WriteChar((switchMask & COMPETITION_SWITCH_PART1) != 0U ? '1' : '0');
+    WriteChar((switchMask & COMPETITION_SWITCH_PART2) != 0U ? '1' : '0');
+    WriteChar((switchMask & COMPETITION_SWITCH_PART3) != 0U ? '1' : '0');
+}
+
+void WriteSelection(uint8_t switchMask) {
+    if (switchMask == COMPETITION_SWITCH_PART1) {
+        WriteChar('1');
+    } else if (switchMask == COMPETITION_SWITCH_PART2) {
+        WriteChar('2');
+    } else if (switchMask == COMPETITION_SWITCH_PART3) {
+        WriteChar('3');
+    } else if (switchMask == COMPETITION_SWITCH_NONE) {
+        WriteString("NONE");
+    } else {
+        WriteString("INVALID");
     }
 }
 
@@ -103,42 +108,16 @@ void DebugSerial_Init() {
     UCSR0A = _BV(U2X0);
     UBRR0H = 0;
     UBRR0L = 16;
-    UCSR0B = _BV(RXEN0) | _BV(TXEN0) | _BV(RXCIE0);
+    UCSR0B = _BV(TXEN0);
     UCSR0C = _BV(UCSZ01) | _BV(UCSZ00); // 8 data bits, no parity, 1 stop bit
 
     WriteString("Servo controller ready\r\n");
 }
 
-bool DebugSerial_TakeStartCommand() {
-    bool commandReceived = false;
-
-    while (g_rxTail != g_rxHead) {
-        char received = g_rxBuffer[g_rxTail];
-        g_rxTail = static_cast<uint8_t>((g_rxTail + 1U) & kRxBufferMask);
-
-        if (received >= 'a' && received <= 'z') {
-            received = static_cast<char>(received - ('a' - 'A'));
-        }
-
-        if (received == kStartCommand[g_startMatchLength]) {
-            ++g_startMatchLength;
-            if (g_startMatchLength == 5U) {
-                commandReceived = true;
-                g_startMatchLength = 0;
-            }
-        } else {
-            g_startMatchLength = received == 'S' ? 1U : 0U;
-        }
-    }
-
-    return commandReceived;
-}
-
 void DebugSerial_Update(uint32_t nowMs,
-                        uint16_t modeAdc,
                         uint16_t speedAdc,
                         uint16_t move90Ms,
-                        uint8_t selectedMode,
+                        uint8_t competitionSwitchMask,
                         bool competitionRunning,
                         uint8_t inputEvents,
                         uint16_t targetsUpMask) {
@@ -148,14 +127,14 @@ void DebugSerial_Update(uint32_t nowMs,
     }
     g_lastLogMs = nowMs;
 
-    WriteString("ADC=");
-    WriteUint16(modeAdc);
-    WriteString(" SPEED_ADC=");
+    WriteString("SPEED_ADC=");
     WriteUint16(speedAdc);
     WriteString(" MOVE90_MS=");
     WriteUint16(move90Ms);
-    WriteString(" MODE=");
-    WriteUint16(static_cast<uint16_t>(selectedMode + 1U));
+    WriteString(" SW=");
+    WriteCompetitionSwitches(competitionSwitchMask);
+    WriteString(" SELECT=");
+    WriteSelection(competitionSwitchMask);
     WriteString(" STATE=");
     WriteString(competitionRunning ? "RUNNING" : "IDLE");
     WriteString(" BTN=");
@@ -163,13 +142,4 @@ void DebugSerial_Update(uint32_t nowMs,
     WriteString(" UP=");
     WriteTargetsUp(targetsUpMask);
     WriteString("\r\n");
-}
-
-ISR(USART_RX_vect) {
-    const char received = static_cast<char>(UDR0);
-    const uint8_t nextHead = static_cast<uint8_t>((g_rxHead + 1U) & kRxBufferMask);
-    if (nextHead != g_rxTail) {
-        g_rxBuffer[g_rxHead] = received;
-        g_rxHead = nextHead;
-    }
 }

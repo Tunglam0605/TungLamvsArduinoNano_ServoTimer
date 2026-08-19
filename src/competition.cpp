@@ -15,6 +15,8 @@ enum class Part3Target1State : uint8_t { Visible = 0, Hidden };
 
 CompetitionMode g_mode = CompetitionMode::Part1;
 SystemState g_systemState = SystemState::Idle;
+uint8_t g_selectionMask = COMPETITION_SWITCH_NONE;
+bool g_selectionArmed = true;
 
 struct Part1Context {
     uint8_t round;
@@ -49,9 +51,28 @@ bool Elapsed(uint32_t nowMs, uint32_t startMs, uint32_t durationMs) {
     return static_cast<uint32_t>(nowMs - startMs) >= durationMs;
 }
 
-void SetModeLeds() {
+bool HasExactlyOneSelection(uint8_t selectionMask) {
+    return selectionMask != COMPETITION_SWITCH_NONE &&
+        (selectionMask & static_cast<uint8_t>(selectionMask - 1U)) == 0U;
+}
+
+CompetitionMode ModeFromSelection(uint8_t selectionMask) {
+    if (selectionMask == COMPETITION_SWITCH_PART2) {
+        return CompetitionMode::Part2;
+    }
+    if (selectionMask == COMPETITION_SWITCH_PART3) {
+        return CompetitionMode::Part3;
+    }
+    return CompetitionMode::Part1;
+}
+
+uint8_t SelectionForMode(CompetitionMode mode) {
+    return static_cast<uint8_t>(1U << static_cast<uint8_t>(mode));
+}
+
+void SetSelectionLeds(uint8_t selectionMask) {
     for (uint8_t i = 0; i < 3U; ++i) {
-        if (i == static_cast<uint8_t>(g_mode)) {
+        if ((selectionMask & static_cast<uint8_t>(1U << i)) != 0U) {
             Gpio_High(Board::kModeLedPins[i]);
         } else {
             Gpio_Low(Board::kModeLedPins[i]);
@@ -202,28 +223,50 @@ void Competition_Init() {
         Gpio_Output(led);
         Gpio_Low(led);
     }
-    const uint8_t selectedMode = Input_GetModeSelection();
-    g_mode = selectedMode < static_cast<uint8_t>(CompetitionMode::Count)
-        ? static_cast<CompetitionMode>(selectedMode)
+    g_selectionMask = Input_GetCompetitionSwitchMask();
+    g_mode = HasExactlyOneSelection(g_selectionMask)
+        ? ModeFromSelection(g_selectionMask)
         : CompetitionMode::Part1;
     g_systemState = SystemState::Idle;
-    SetModeLeds();
+    g_selectionArmed = true;
+    SetSelectionLeds(g_selectionMask);
     Target_AllDown();
 }
 
 void Competition_Update(uint32_t nowMs, uint8_t inputEvents) {
+    const uint8_t selectionMask = Input_GetCompetitionSwitchMask();
+    const bool selectionChanged = selectionMask != g_selectionMask;
+    if (selectionChanged) {
+        g_selectionMask = selectionMask;
+        SetSelectionLeds(g_selectionMask);
+    }
+
     if (g_systemState == SystemState::Idle) {
-        const uint8_t selectedMode = Input_GetModeSelection();
-        if (selectedMode < static_cast<uint8_t>(CompetitionMode::Count) &&
-            selectedMode != static_cast<uint8_t>(g_mode)) {
-            g_mode = static_cast<CompetitionMode>(selectedMode);
-            Target_AllDown();
-            SetModeLeds();
+        if (!HasExactlyOneSelection(selectionMask)) {
+            g_selectionArmed = true;
+            if (selectionChanged) {
+                Target_AllDown();
+            }
+            return;
         }
 
-        if ((inputEvents & INPUT_START) != 0U) {
-            StartSelected(nowMs);
+        if (selectionChanged) {
+            g_selectionArmed = true;
         }
+
+        if (!g_selectionArmed) {
+            return;
+        }
+
+        g_mode = ModeFromSelection(selectionMask);
+        g_selectionArmed = false;
+        StartSelected(nowMs);
+        return;
+    }
+
+    if (selectionMask != SelectionForMode(g_mode)) {
+        FinishCompetition();
+        g_selectionArmed = true;
         return;
     }
 

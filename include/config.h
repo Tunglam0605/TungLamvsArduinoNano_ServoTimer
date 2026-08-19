@@ -19,9 +19,8 @@ constexpr uint16_t kServoMinSlewStepUsPerFrame = 9;
 constexpr uint16_t kServoMaxSlewStepUsPerFrame = 90;
 
 constexpr uint16_t kButtonDebounceMs = 20;
-constexpr uint16_t kModePotSampleMs = 10;
-constexpr uint16_t kModePotStableMs = 50;
-constexpr uint16_t kModePotHysteresis = 16;
+constexpr uint16_t kAnalogSampleMs = 10;
+constexpr uint16_t kPart3SwitchOnThreshold = 512;
 
 constexpr uint32_t kPart1VisibleMs = 8000UL;
 constexpr uint32_t kPart1HiddenMs = 10000UL;

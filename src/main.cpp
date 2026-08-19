@@ -40,16 +40,12 @@ int main() {
             appliedSpeedAdc = speedAdc;
             move90Ms = ServoEngine_GetMove90Ms();
         }
-        uint8_t events = Input_TakeEvents();
-        if (DebugSerial_TakeStartCommand()) {
-            events = static_cast<uint8_t>(events | INPUT_START);
-        }
+        const uint8_t events = Input_TakeEvents();
         Competition_Update(nowMs, events);
         DebugSerial_Update(nowMs,
-                           Input_GetModeAdc(),
                            speedAdc,
                            move90Ms,
-                           Input_GetModeSelection(),
+                           Input_GetCompetitionSwitchMask(),
                            Competition_IsRunning(),
                            events,
                            Target_GetUpMask());

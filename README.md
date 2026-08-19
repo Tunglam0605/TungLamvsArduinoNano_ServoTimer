@@ -31,15 +31,17 @@ Firmware register-level cho Arduino Nano ATmega328P điều khiển 9 bia servo 
 | Mode LED 3 | D13 |
 | Part 2 - Left LED | A0 |
 | Part 2 - Right LED | A1 |
-| MODE potentiometer wiper | A2/ADC2 |
+| Part 1 maintained switch | A2 |
 | Part 2 - Left button | A3 |
 | Part 2 - Right button | A4 |
-| START button | A5 |
+| Part 2 maintained switch | A5 |
 | Servo speed potentiometer wiper | A6/ADC6 |
+| Part 3 maintained switch | A7/ADC7 |
 
-Biến trở MODE: nối hai đầu ngoài vào 5 V và GND, chân giữa (wiper) vào A2.
 Biến trở tốc độ: nối hai đầu ngoài vào 5 V và GND, chân giữa (wiper) vào A6.
-Các nút A3..A5 dùng active-low và internal pull-up.
+Nút tự giữ Phần 1 và Phần 2 nối lần lượt A2/A5 xuống GND, dùng pull-up nội.
+Nút tự giữ Phần 3 nối A7 xuống GND và cần điện trở kéo lên 10 kΩ từ A7 lên 5 V.
+Hai nút A3/A4 của Phần 2 vẫn là active-low với pull-up nội.
 
 ## Phần thi 1
 
@@ -54,7 +56,7 @@ Các nút A3..A5 dùng active-low và internal pull-up.
 
 ## Phần thi 2
 
-- Khi START: bia trái và phải dựng, LED tương ứng sáng, bia giữa hạ.
+- Khi chỉ nút tự giữ Phần 2 ON: bia trái và phải dựng, LED tương ứng sáng, bia giữa hạ.
 - Nhấn một trong hai nút trái/phải sẽ kích hoạt một lần lựa chọn ngẫu nhiên.
 - Ngẫu nhiên chọn bia trái hoặc phải để hạ; LED của bia được chọn tắt.
 - Bia giữa dựng trong 25 s rồi hạ.
@@ -68,28 +70,26 @@ Các nút A3..A5 dùng active-low và internal pull-up.
 
 ## Chọn phần thi
 
-- Biến trở MODE chỉ thay đổi phần thi khi hệ thống IDLE.
-- ADC 0..340 chọn Part 1, 341..682 chọn Part 2, 683..1023 chọn Part 3.
-- Firmware lấy mẫu mỗi 10 ms, yêu cầu vùng mới ổn định 50 ms và có hysteresis để chống nhảy mode gần biên.
-- Ba LED D11/D12/D13 báo phần thi đang chọn.
-- START ở A5 bắt đầu phần thi hiện tại.
-- Khi đang RUNNING, thay đổi biến trở và START không ảnh hưởng bài đang chạy; mode mới được áp dụng khi trở lại IDLE.
+- Có ba nút tự giữ tương ứng Phần 1, Phần 2 và Phần 3.
+- Chỉ khi đúng một nút ON, phần thi tương ứng mới tự chạy.
+- Nếu không có nút nào ON hoặc có hai/ba nút cùng ON, tất cả bia hạ và không phần thi nào chạy.
+- Nếu trạng thái nút trở thành không hợp lệ khi đang RUNNING, bài hiện tại dừng và tất cả bia hạ.
+- Mỗi lần chuyển OFF -> ON chỉ chạy một lần. Muốn chạy lại cùng phần phải đưa nút về OFF rồi ON lại.
+- LED D11/D12/D13 phản ánh trực tiếp trạng thái ON của ba nút tự giữ.
 
 ## Serial debug
 
-USART0 phát log ở 115200 baud mỗi 200 ms, gồm giá trị ADC, mode, trạng thái và sự kiện nút:
+USART0 phát log ở 115200 baud mỗi 200 ms, gồm tốc độ, ba trạng thái chọn, trạng thái chạy và bia đang dựng:
 
 ```text
-ADC=512 SPEED_ADC=600 MOVE90_MS=320 MODE=2 STATE=IDLE BTN=- UP=-
-ADC=512 SPEED_ADC=600 MOVE90_MS=320 MODE=2 STATE=RUNNING BTN=START UP=P2L,P2R
+SPEED_ADC=600 MOVE90_MS=320 SW=000 SELECT=NONE STATE=IDLE BTN=- UP=-
+SPEED_ADC=600 MOVE90_MS=320 SW=010 SELECT=2 STATE=RUNNING BTN=- UP=P2L,P2R
+SPEED_ADC=600 MOVE90_MS=320 SW=110 SELECT=INVALID STATE=IDLE BTN=- UP=-
 ```
 
+`SW` lần lượt là trạng thái Phần 1/2/3; `1` là ON. `SELECT=INVALID` nghĩa là có nhiều nút cùng ON.
 `UP` liệt kê các bia đang dựng; các bia không xuất hiện trong danh sách đang hạ.
 Tên bia lần lượt là P1T1..P1T4, P2L/P2C/P2R và P3T1/P3T2.
-
-Gửi `START` (không phân biệt chữ hoa/thường) từ Serial Monitor để bắt đầu mode
-đang chọn, tương đương nhấn nút START ở A5. UART RX dùng ngắt và bộ đệm nên
-không chặn main loop.
 
 ## Build
 

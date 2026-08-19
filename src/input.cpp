@@ -14,22 +14,21 @@ struct DebouncedButton {
 };
 
 DebouncedButton g_buttons[] = {
+    {&Board::kPart1Switch, false, 0, INPUT_NONE},
     {&Board::kPart2LeftButton, false, 0, INPUT_PART2_LEFT},
     {&Board::kPart2RightButton, false, 0, INPUT_PART2_RIGHT},
-    {&Board::kStartButton, false, 0, INPUT_START}
+    {&Board::kPart2Switch, false, 0, INPUT_NONE}
 };
 
-uint32_t g_lastUpdateMs = 0;
-uint32_t g_lastPotSampleMs = 0;
-uint32_t g_modeCandidateStartMs = 0;
-uint8_t g_events = INPUT_NONE;
-uint8_t g_modeSelection = 0;
-uint8_t g_modeCandidate = 0;
-uint16_t g_modeAdc = 0;
-uint16_t g_speedAdc = 0;
+constexpr uint8_t kPart1SwitchIndex = 0;
+constexpr uint8_t kPart2SwitchIndex = 3;
 
-constexpr uint16_t kMode1UpperBoundary = 341;
-constexpr uint16_t kMode2UpperBoundary = 683;
+uint32_t g_lastUpdateMs = 0;
+uint32_t g_lastAnalogSampleMs = 0;
+uint8_t g_events = INPUT_NONE;
+uint16_t g_speedAdc = 0;
+bool g_part3SwitchOn = false;
+uint16_t g_part3SwitchMismatchMs = 0;
 
 uint16_t ReadAdc(uint8_t channel) {
     ADMUX = static_cast<uint8_t>(_BV(REFS0) | (channel & 0x0FU));
@@ -42,75 +41,38 @@ uint16_t ReadAdc(uint8_t channel) {
     return static_cast<uint16_t>(low | (static_cast<uint16_t>(high) << 8U));
 }
 
-uint8_t ModeFromAdc(uint16_t adcValue) {
-    if (adcValue < kMode1UpperBoundary) {
-        return 0;
-    }
-    if (adcValue < kMode2UpperBoundary) {
-        return 1;
-    }
-    return 2;
-}
-
-uint8_t ModeWithHysteresis(uint16_t adcValue) {
-    const uint16_t hysteresis = Config::kModePotHysteresis;
-    switch (g_modeSelection) {
-        case 0:
-            if (adcValue >= static_cast<uint16_t>(kMode2UpperBoundary + hysteresis)) {
-                return 2;
-            }
-            return adcValue >= static_cast<uint16_t>(kMode1UpperBoundary + hysteresis) ? 1 : 0;
-        case 1:
-            if (adcValue <= static_cast<uint16_t>(kMode1UpperBoundary - hysteresis)) {
-                return 0;
-            }
-            return adcValue >= static_cast<uint16_t>(kMode2UpperBoundary + hysteresis) ? 2 : 1;
-        default:
-            if (adcValue <= static_cast<uint16_t>(kMode1UpperBoundary - hysteresis)) {
-                return 0;
-            }
-            return adcValue <= static_cast<uint16_t>(kMode2UpperBoundary - hysteresis) ? 1 : 2;
-    }
-}
-
-void UpdateModePot(uint32_t nowMs) {
-    if (static_cast<uint32_t>(nowMs - g_lastPotSampleMs) < Config::kModePotSampleMs) {
+void UpdateAnalogInputs(uint32_t nowMs) {
+    const uint32_t elapsed = static_cast<uint32_t>(nowMs - g_lastAnalogSampleMs);
+    if (elapsed < Config::kAnalogSampleMs) {
         return;
     }
-    g_lastPotSampleMs = nowMs;
+    g_lastAnalogSampleMs = nowMs;
 
-    g_modeAdc = ReadAdc(2);
     const uint16_t rawSpeedAdc = ReadAdc(6);
     g_speedAdc = static_cast<uint16_t>((static_cast<uint32_t>(g_speedAdc) * 7U + rawSpeedAdc) / 8U);
-    const uint8_t newCandidate = ModeWithHysteresis(g_modeAdc);
-    if (newCandidate == g_modeSelection) {
-        g_modeCandidate = g_modeSelection;
-        g_modeCandidateStartMs = nowMs;
+
+    const bool rawPart3On = ReadAdc(7) < Config::kPart3SwitchOnThreshold;
+    if (rawPart3On == g_part3SwitchOn) {
+        g_part3SwitchMismatchMs = 0;
         return;
     }
 
-    if (newCandidate != g_modeCandidate) {
-        g_modeCandidate = newCandidate;
-        g_modeCandidateStartMs = nowMs;
-        return;
-    }
-
-    if (static_cast<uint32_t>(nowMs - g_modeCandidateStartMs) >= Config::kModePotStableMs) {
-        g_modeSelection = g_modeCandidate;
+    const uint32_t accumulated = static_cast<uint32_t>(g_part3SwitchMismatchMs) + elapsed;
+    g_part3SwitchMismatchMs = accumulated > 0xFFFFU ? 0xFFFFU : static_cast<uint16_t>(accumulated);
+    if (g_part3SwitchMismatchMs >= Config::kButtonDebounceMs) {
+        g_part3SwitchOn = rawPart3On;
+        g_part3SwitchMismatchMs = 0;
     }
 }
 }
 
 void Input_Init() {
-    Gpio_InputFloating(Board::kModePotentiometer);
-    DIDR0 |= _BV(ADC2D); // A6 is analog-only and has no digital input buffer.
+    // A6 and A7 are analog-only and have no digital input buffers.
     ADMUX = _BV(REFS0); // AVcc reference; channel is selected per conversion
     ADCSRA = _BV(ADEN) | _BV(ADPS2) | _BV(ADPS1) | _BV(ADPS0); // ADC clock /128
 
-    g_modeAdc = ReadAdc(2);
     g_speedAdc = ReadAdc(6);
-    g_modeSelection = ModeFromAdc(g_modeAdc);
-    g_modeCandidate = g_modeSelection;
+    g_part3SwitchOn = ReadAdc(7) < Config::kPart3SwitchOnThreshold;
 
     for (auto& button : g_buttons) {
         Gpio_InputPullup(*button.gpio);
@@ -126,7 +88,7 @@ void Input_Update(uint32_t nowMs) {
     }
     g_lastUpdateMs = nowMs;
 
-    UpdateModePot(nowMs);
+    UpdateAnalogInputs(nowMs);
 
     for (auto& button : g_buttons) {
         const bool rawPressed = Gpio_IsPressedActiveLow(*button.gpio);
@@ -154,12 +116,18 @@ uint8_t Input_TakeEvents() {
     return events;
 }
 
-uint8_t Input_GetModeSelection() {
-    return g_modeSelection;
-}
-
-uint16_t Input_GetModeAdc() {
-    return g_modeAdc;
+uint8_t Input_GetCompetitionSwitchMask() {
+    uint8_t mask = COMPETITION_SWITCH_NONE;
+    if (g_buttons[kPart1SwitchIndex].stablePressed) {
+        mask = static_cast<uint8_t>(mask | COMPETITION_SWITCH_PART1);
+    }
+    if (g_buttons[kPart2SwitchIndex].stablePressed) {
+        mask = static_cast<uint8_t>(mask | COMPETITION_SWITCH_PART2);
+    }
+    if (g_part3SwitchOn) {
+        mask = static_cast<uint8_t>(mask | COMPETITION_SWITCH_PART3);
+    }
+    return mask;
 }
 
 uint16_t Input_GetSpeedAdc() {
