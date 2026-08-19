@@ -14,17 +14,17 @@ struct DebouncedButton {
 
 DebouncedButton g_buttons[] = {
     {&Board::kPart1Switch, false, 0},
-    {&Board::kPart2Switch, false, 0}
+    {&Board::kPart2Switch, false, 0},
+    {&Board::kPart3Switch, false, 0}
 };
 
 constexpr uint8_t kPart1SwitchIndex = 0;
 constexpr uint8_t kPart2SwitchIndex = 1;
+constexpr uint8_t kPart3SwitchIndex = 2;
 
 uint32_t g_lastUpdateMs = 0;
 uint32_t g_lastAnalogSampleMs = 0;
 uint16_t g_speedAdc = 0;
-bool g_part3SwitchOn = false;
-uint16_t g_part3SwitchMismatchMs = 0;
 
 uint16_t ReadAdc(uint8_t channel) {
     ADMUX = static_cast<uint8_t>(_BV(REFS0) | (channel & 0x0FU));
@@ -46,29 +46,15 @@ void UpdateAnalogInputs(uint32_t nowMs) {
 
     const uint16_t rawSpeedAdc = ReadAdc(6);
     g_speedAdc = static_cast<uint16_t>((static_cast<uint32_t>(g_speedAdc) * 7U + rawSpeedAdc) / 8U);
-
-    const bool rawPart3On = ReadAdc(7) < Config::kPart3SwitchOnThreshold;
-    if (rawPart3On == g_part3SwitchOn) {
-        g_part3SwitchMismatchMs = 0;
-        return;
-    }
-
-    const uint32_t accumulated = static_cast<uint32_t>(g_part3SwitchMismatchMs) + elapsed;
-    g_part3SwitchMismatchMs = accumulated > 0xFFFFU ? 0xFFFFU : static_cast<uint16_t>(accumulated);
-    if (g_part3SwitchMismatchMs >= Config::kButtonDebounceMs) {
-        g_part3SwitchOn = rawPart3On;
-        g_part3SwitchMismatchMs = 0;
-    }
 }
 }
 
 void Input_Init() {
-    // A6 and A7 are analog-only and have no digital input buffers.
+    // A6 is analog-only and has no digital input buffer.
     ADMUX = _BV(REFS0); // AVcc reference; channel is selected per conversion
     ADCSRA = _BV(ADEN) | _BV(ADPS2) | _BV(ADPS1) | _BV(ADPS0); // ADC clock /128
 
     g_speedAdc = ReadAdc(6);
-    g_part3SwitchOn = ReadAdc(7) < Config::kPart3SwitchOnThreshold;
 
     for (auto& button : g_buttons) {
         Gpio_InputPullup(*button.gpio);
@@ -111,7 +97,7 @@ uint8_t Input_GetCompetitionSwitchMask() {
     if (g_buttons[kPart2SwitchIndex].stablePressed) {
         mask = static_cast<uint8_t>(mask | COMPETITION_SWITCH_PART2);
     }
-    if (g_part3SwitchOn) {
+    if (g_buttons[kPart3SwitchIndex].stablePressed) {
         mask = static_cast<uint8_t>(mask | COMPETITION_SWITCH_PART3);
     }
     return mask;

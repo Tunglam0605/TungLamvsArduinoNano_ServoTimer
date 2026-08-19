@@ -35,10 +35,10 @@ static const GpioPin kModeLedPins[3] = {
 static const GpioPin kPart2LeftLed  = {&DDRC, &PORTC, &PINC, _BV(PC0)};
 static const GpioPin kPart2RightLed = {&DDRC, &PORTC, &PINC, _BV(PC1)};
 
-// Maintained competition switches, active-low with internal pull-ups.
-// Part 3 uses A7/ADC7 and is handled as an analog input with an external pull-up.
+// Maintained competition switches, active-low with internal pull-ups: A2..A4.
 static const GpioPin kPart1Switch       = {&DDRC, &PORTC, &PINC, _BV(PC2)}; // A2
-static const GpioPin kPart2Switch       = {&DDRC, &PORTC, &PINC, _BV(PC5)}; // A5
+static const GpioPin kPart2Switch       = {&DDRC, &PORTC, &PINC, _BV(PC3)}; // A3
+static const GpioPin kPart3Switch       = {&DDRC, &PORTC, &PINC, _BV(PC4)}; // A4
 }
 
 inline void Gpio_Output(const GpioPin& gpio) {

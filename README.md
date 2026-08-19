@@ -32,16 +32,14 @@ Firmware register-level cho Arduino Nano ATmega328P điều khiển 9 bia servo 
 | Part 2 - Left LED | A0 |
 | Part 2 - Right LED | A1 |
 | Part 1 maintained switch | A2 |
-| Unused | A3 |
-| Unused | A4 |
-| Part 2 maintained switch | A5 |
+| Part 2 maintained switch | A3 |
+| Part 3 maintained switch | A4 |
+| Unused | A5 |
 | Servo speed potentiometer wiper | A6/ADC6 |
-| Part 3 maintained switch | A7/ADC7 |
 
 Biến trở tốc độ: nối hai đầu ngoài vào 5 V và GND, chân giữa (wiper) vào A6.
-Nút tự giữ Phần 1 và Phần 2 nối lần lượt A2/A5 xuống GND, dùng pull-up nội.
-Nút tự giữ Phần 3 nối A7 xuống GND và cần điện trở kéo lên 10 kΩ từ A7 lên 5 V.
-A3 và A4 hiện không sử dụng.
+Ba nút tự giữ Phần 1/2/3 nối lần lượt A2/A3/A4 xuống GND và đều dùng pull-up nội.
+A5 và A7 hiện không sử dụng.
 
 ## Phần thi 1
 
