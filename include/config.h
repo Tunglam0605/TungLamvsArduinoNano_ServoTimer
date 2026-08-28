@@ -4,8 +4,8 @@
 
 namespace Config {
 constexpr uint8_t kServoCount = 9;
-constexpr uint8_t kServoDownAngle = 0;
-constexpr uint8_t kServoUpAngle = 90;
+constexpr uint8_t kServoDownAngle = 30;
+constexpr uint8_t kServoUpAngle = 120;
 
 constexpr uint16_t kServoFrameUs = 20000;
 // Calibrated for the tested SG90 units: this maps logical 0°..180° to the
@@ -21,6 +21,8 @@ constexpr uint16_t kServoMaxSlewStepUsPerFrame = 90;
 constexpr uint16_t kButtonDebounceMs = 20;
 constexpr uint16_t kAnalogSampleMs = 10;
 constexpr uint16_t kModeCompleteBlinkMs = 500;
+// Toggle every 100 ms: one ON/OFF cycle is 200 ms, therefore 5 Hz.
+constexpr uint16_t kSystemLedToggleMs = 100;
 
 constexpr uint32_t kPart1VisibleMs = 8000UL;
 constexpr uint32_t kPart1HiddenMs = 10000UL;

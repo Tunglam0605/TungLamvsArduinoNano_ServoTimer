@@ -9,8 +9,9 @@ Firmware register-level cho Arduino Nano ATmega328P điều khiển 9 bia servo 
 - Timer2 CTC, prescaler /64, OCR2A=249: system tick 1 ms.
 - Timer0 free-running: entropy cho lựa chọn ngẫu nhiên ở phần 2.
 - FSM chạy ở main loop; ISR chỉ làm timing tối thiểu.
-- Góc bia hạ: 0°; góc bia dựng: 90°.
-- Biến trở A6 chỉnh ramp chung cho 9 servo; hành trình 0° -> 90° khoảng 0,2..2,0 s.
+- LED tích hợp D13 nháy heartbeat 5 Hz để báo vòng lặp chính vẫn hoạt động.
+- Góc bia hạ và góc khởi động: 30°; góc bia dựng: 120°.
+- Biến trở A6 chỉnh ramp chung cho 9 servo; hành trình 30° -> 120° khoảng 0,2..2,0 s.
 - Nguồn servo phải dùng 5 V ngoài đủ dòng và nối chung GND với Nano.
 
 ## Pin mapping
@@ -26,20 +27,22 @@ Firmware register-level cho Arduino Nano ATmega328P điều khiển 9 bia servo 
 | Part 2 - Right | D8 |
 | Part 3 - Target 1 | D9 |
 | Part 3 - Target 2 | D10 |
-| Mode LED 1 | D11 |
-| Mode LED 2 | D12 |
-| Mode LED 3 | D13 |
-| Part 2 - Left LED | A0 |
-| Part 2 - Right LED | A1 |
-| Part 1 maintained switch | A2 |
-| Part 2 maintained switch | A3 |
-| Part 3 maintained switch | A4 |
-| Unused | A5 |
+| Part 1 maintained switch | A0 |
+| Part 2 maintained switch | A1 |
+| Part 3 maintained switch | A2 |
+| Mode LED 1 | A3 |
+| Mode LED 2 | A4 |
+| Mode LED 3 | A5 |
 | Servo speed potentiometer wiper | A6/ADC6 |
+| Part 2 - Left LED | D11 |
+| Part 2 - Right LED | D12 |
+| System heartbeat / Nano built-in LED | D13 |
 
 Biến trở tốc độ: nối hai đầu ngoài vào 5 V và GND, chân giữa (wiper) vào A6.
-Ba nút tự giữ Phần 1/2/3 nối lần lượt A2/A3/A4 xuống GND và đều dùng pull-up nội.
-A5 và A7 hiện không sử dụng.
+Ba nút tự giữ Phần 1/2/3 nối lần lượt A0/A1/A2 xuống GND và đều dùng pull-up nội.
+LED báo Mode 1/2/3 nối lần lượt A3/A4/A5 qua điện trở 220–330 ohm xuống GND.
+LED trái/phải của Phần 2 nối D11/D12 qua điện trở 220–330 ohm xuống GND.
+D13 dùng LED tích hợp làm heartbeat: nháy liên tục 5 Hz để báo firmware đang hoạt động; A7 hiện không sử dụng.
 
 ## Phần thi 1
 
@@ -75,7 +78,7 @@ A5 và A7 hiện không sử dụng.
 - Tắt nút đã khóa sẽ kết thúc sớm bài hiện tại và hạ toàn bộ bia.
 - Khi bài tự kết thúc hoặc bị tắt, hệ thống chờ cả ba nút trở về OFF trước khi cho phép chọn mode tiếp theo.
 - Nếu hai/ba nút cùng bật trước khi một mode được khóa, hệ thống không chọn mode và vẫn yêu cầu trở lại `000`.
-- LED D11/D12/D13 sáng liên tục khi Mode 1/2/3 tương ứng đang RUNNING.
+- LED A3/A4/A5 sáng liên tục khi Mode 1/2/3 tương ứng đang RUNNING.
 - Khi bài kết thúc hoặc bị hủy mà còn nút ON, LED của mode vừa chạy nháy mỗi 500 ms để yêu cầu đưa cả ba nút về OFF.
 - Khi cả ba nút đã OFF, LED tắt và hệ thống mới cho phép chọn mode tiếp theo.
 - Hai nút phụ trong Mode 2 không làm thay đổi LED mode.
@@ -116,17 +119,21 @@ include/
   board.h          Pin/register mapping
   config.h         Timing constants
   system_tick.h    Timer2 tick API
+  heartbeat.h      D13 system-alive heartbeat
   servo_engine.h   Timer1 servo API
   input.h          Button events
   target.h         Logical target API
   competition.h    Competition FSM API
+  debug_serial.h   USART0 debug API
 src/
   main.cpp
   system_tick.cpp
+  heartbeat.cpp
   servo_engine.cpp
   input.cpp
   target.cpp
   competition.cpp
+  debug_serial.cpp
 ```
 
 ## Lưu ý nguồn

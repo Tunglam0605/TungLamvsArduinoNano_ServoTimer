@@ -24,21 +24,22 @@ static const GpioPin kServoPins[9] = {
     {&DDRB, &PORTB, &PINB, _BV(PB2)}  // D10
 };
 
-// Mode LEDs: D11, D12, D13
+// Maintained mode switches: A0..A2, active-low with internal pull-ups.
+static const GpioPin kPart1Switch = {&DDRC, &PORTC, &PINC, _BV(PC0)}; // A0
+static const GpioPin kPart2Switch = {&DDRC, &PORTC, &PINC, _BV(PC1)}; // A1
+static const GpioPin kPart3Switch = {&DDRC, &PORTC, &PINC, _BV(PC2)}; // A2
+
+// Mode LEDs: A3..A5.
 static const GpioPin kModeLedPins[3] = {
-    {&DDRB, &PORTB, &PINB, _BV(PB3)},
-    {&DDRB, &PORTB, &PINB, _BV(PB4)},
-    {&DDRB, &PORTB, &PINB, _BV(PB5)}
+    {&DDRC, &PORTC, &PINC, _BV(PC3)}, // A3
+    {&DDRC, &PORTC, &PINC, _BV(PC4)}, // A4
+    {&DDRC, &PORTC, &PINC, _BV(PC5)}  // A5
 };
 
-// Part-2 side LEDs: A0, A1
-static const GpioPin kPart2LeftLed  = {&DDRC, &PORTC, &PINC, _BV(PC0)};
-static const GpioPin kPart2RightLed = {&DDRC, &PORTC, &PINC, _BV(PC1)};
-
-// Maintained competition switches, active-low with internal pull-ups: A2..A4.
-static const GpioPin kPart1Switch       = {&DDRC, &PORTC, &PINC, _BV(PC2)}; // A2
-static const GpioPin kPart2Switch       = {&DDRC, &PORTC, &PINC, _BV(PC3)}; // A3
-static const GpioPin kPart3Switch       = {&DDRC, &PORTC, &PINC, _BV(PC4)}; // A4
+// Part-2 side LEDs: D11, D12. D13 remains free as a system/status LED.
+static const GpioPin kPart2LeftLed  = {&DDRB, &PORTB, &PINB, _BV(PB3)}; // D11
+static const GpioPin kPart2RightLed = {&DDRB, &PORTB, &PINB, _BV(PB4)}; // D12
+static const GpioPin kSystemLed     = {&DDRB, &PORTB, &PINB, _BV(PB5)}; // D13
 }
 
 inline void Gpio_Output(const GpioPin& gpio) {
@@ -61,6 +62,12 @@ inline void Gpio_High(const GpioPin& gpio) {
 
 inline void Gpio_Low(const GpioPin& gpio) {
     *gpio.port &= static_cast<uint8_t>(~gpio.mask);
+}
+
+inline void Gpio_Toggle(const GpioPin& gpio) {
+    // On ATmega328P, writing a one to PINx toggles only the selected PORTx bit.
+    // This avoids a read-modify-write race with servo outputs on the same port.
+    *gpio.pin = gpio.mask;
 }
 
 inline bool Gpio_IsPressedActiveLow(const GpioPin& gpio) {

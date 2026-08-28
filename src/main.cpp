@@ -1,5 +1,6 @@
 #include "competition.h"
 #include "debug_serial.h"
+#include "heartbeat.h"
 #include "input.h"
 #include "servo_engine.h"
 #include "system_tick.h"
@@ -25,6 +26,7 @@ int main() {
     ServoEngine_Init();
     ServoEngine_SetSpeedFromAdc(Input_GetSpeedAdc());
     DebugSerial_Init();
+    Heartbeat_Init();
 
     sei();
 
@@ -33,6 +35,7 @@ int main() {
 
     while (true) {
         const uint32_t nowMs = SystemTick_NowMs();
+        Heartbeat_Update(nowMs);
         Input_Update(nowMs);
         const uint16_t speedAdc = Input_GetSpeedAdc();
         if (speedAdc != appliedSpeedAdc) {
