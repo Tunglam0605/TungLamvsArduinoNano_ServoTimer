@@ -121,7 +121,7 @@ include/
   system_tick.h    Timer2 tick API
   heartbeat.h      D13 system-alive heartbeat
   servo_engine.h   Timer1 servo API
-  input.h          Button events
+  input.h          Maintained competition switch inputs
   target.h         Logical target API
   competition.h    Competition FSM API
   debug_serial.h   USART0 debug API
